@@ -44,10 +44,10 @@
 <video id="videoElement" autoplay muted playsinline></video>
 <canvas id="threeCanvas"></canvas>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-<script>
   // Utility: Parse URL query params
   function getQueryParam(name) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -108,7 +108,7 @@
   scene.add(directionalLight);
 
   // Load model
-  const loader = new THREE.GLTFLoader();
+  const loader = new GLTFLoader();
   let model = null;
 
   loader.load(modelFile, (gltf) => {
