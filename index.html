@@ -1,110 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>3D Model on Camera</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; overflow: hidden; background: black;
-  }
-  #videoElement {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    object-fit: cover;
-    transform: scaleX(-1); /* mirror front camera */
-    z-index: 0;
-    background: black;
-  }
-  canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    z-index: 1;
-    pointer-events: none;
-    background: transparent;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AR Model on Camera</title>
+  <style>
+    body, html { margin: 0; padding: 0; overflow: hidden; background: black; }
+    #videoElement {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      object-fit: cover;
+      transform: scaleX(-1);
+      z-index: 0;
+      background: black;
+    }
+    canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 1;
+      pointer-events: none;
+      background: transparent;
+    }
+  </style>
 </head>
 <body>
 
-<video id="videoElement" autoplay playsinline muted></video>
-<canvas id="threeCanvas"></canvas>
+  <video id="videoElement" autoplay playsinline muted></video>
+  <canvas id="threeCanvas"></canvas>
 
-<!-- Load THREE.js and GLTFLoader (non-module versions) -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- Three.js and loader v0.140.2 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.2/examples/js/loaders/GLTFLoader.js"></script>
 
-<script>
-  const video = document.getElementById('videoElement');
+  <script>
+    const video = document.getElementById('videoElement');
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false
-      });
-      video.srcObject = stream;
-      await video.play();
-      console.log('Camera started');
-    } catch (err) {
-      alert('Could not start camera: ' + err.message);
-      console.error(err);
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+        console.log('Camera started');
+      } catch (err) {
+        alert('Could not start camera: ' + err.message);
+        console.error(err);
+      }
     }
-  }
-  startCamera();
+    startCamera();
 
-  const canvas = document.getElementById('threeCanvas');
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x000000, 0);
-
-  const scene = new THREE.Scene();
-
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.z = 5;
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-  scene.add(ambientLight);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(0, 5, 5);
-  scene.add(directionalLight);
-
-  let model = null;
-  const loader = new THREE.GLTFLoader();
-
-  loader.load('armstretch.glb',
-    function(gltf) {
-      model = gltf.scene;
-      model.scale.set(1.5, 1.5, 1.5);
-      model.position.set(0, -0.5, 0);
-      scene.add(model);
-      console.log('Model loaded');
-    },
-    undefined,
-    function(error) {
-      console.error('Error loading model:', error);
-      alert('Error loading model: ' + error.message);
-    }
-  );
-
-  function animate() {
-    requestAnimationFrame(animate);
-    if (model) {
-      model.rotation.y += 0.01;
-    }
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
+    const canvas = document.getElementById('threeCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
+    renderer.setClearColor(0x000000, 0);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.z = 4;
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(0, 5, 5);
+    scene.add(directionalLight);
+
+    let model = null;
+    const loader = new THREE.GLTFLoader();
+
+    loader.load('armstretch.glb',
+      function(gltf) {
+        model = gltf.scene;
+        model.scale.set(2, 2, 2);
+        model.position.set(0, -1, 0);
+        scene.add(model);
+        console.log('Model loaded successfully');
+      },
+      undefined,
+      function(error) {
+        console.error('Error loading model:', error);
+        alert('Error loading model: ' + error.message);
+      }
+    );
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (model) {
+        model.rotation.y += 0.01;
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
 
 </body>
 </html>
