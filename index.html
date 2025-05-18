@@ -44,10 +44,10 @@
 <video id="videoElement" autoplay muted playsinline></video>
 <canvas id="threeCanvas"></canvas>
 
-<script type="module">
-  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
 
+<script>
   // Utility: Parse URL query params
   function getQueryParam(name) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -108,7 +108,7 @@
   scene.add(directionalLight);
 
   // Load model
-  const loader = new GLTFLoader();
+  const loader = new THREE.GLTFLoader();
   let model = null;
 
   loader.load(modelFile, (gltf) => {
@@ -133,107 +133,4 @@
   function getTouchDistance(touches) {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-  }
-  function getTouchAngle(touches) {
-    const dx = touches[1].clientX - touches[0].clientX;
-    const dy = touches[1].clientY - touches[0].clientY;
-    return Math.atan2(dy, dx);
-  }
-
-  let lastTouchDistance = 0;
-  let lastTouchAngle = 0;
-
-  // Mouse / Touch events
-  canvas.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    previousMousePosition.x = e.clientX;
-    previousMousePosition.y = e.clientY;
-  });
-
-  canvas.addEventListener('mouseup', () => { isDragging = false; });
-  canvas.addEventListener('mouseleave', () => { isDragging = false; });
-
-  canvas.addEventListener('mousemove', (e) => {
-    if (!isDragging || !model) return;
-    const deltaMove = {
-      x: e.clientX - previousMousePosition.x,
-      y: e.clientY - previousMousePosition.y
-    };
-    modelPosition.x += deltaMove.x * 0.01;
-    modelPosition.y -= deltaMove.y * 0.01;
-    model.position.copy(modelPosition);
-    previousMousePosition.x = e.clientX;
-    previousMousePosition.y = e.clientY;
-  });
-
-  canvas.addEventListener('wheel', (e) => {
-    if (!model) return;
-    e.preventDefault();
-    const scaleAmount = e.deltaY * -0.001;
-    modelScale = Math.min(Math.max(0.1, modelScale + scaleAmount), 5);
-    model.scale.set(modelScale, modelScale, modelScale);
-  }, { passive: false });
-
-  canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (e.touches.length === 1) {
-      isDragging = true;
-      previousMousePosition.x = e.touches[0].clientX;
-      previousMousePosition.y = e.touches[0].clientY;
-    } else if (e.touches.length === 2) {
-      lastTouchDistance = getTouchDistance(e.touches);
-      lastTouchAngle = getTouchAngle(e.touches);
-      isDragging = false;
-    }
-  }, { passive: false });
-
-  canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    if (!model) return;
-    if (e.touches.length === 1 && isDragging) {
-      const deltaMove = {
-        x: e.touches[0].clientX - previousMousePosition.x,
-        y: e.touches[0].clientY - previousMousePosition.y
-      };
-      modelPosition.x += deltaMove.x * 0.01;
-      modelPosition.y -= deltaMove.y * 0.01;
-      model.position.copy(modelPosition);
-      previousMousePosition.x = e.touches[0].clientX;
-      previousMousePosition.y = e.touches[0].clientY;
-    } else if (e.touches.length === 2) {
-      const currentDistance = getTouchDistance(e.touches);
-      const distanceDiff = currentDistance - lastTouchDistance;
-      modelScale = Math.min(Math.max(0.1, modelScale + distanceDiff * 0.005), 5);
-      model.scale.set(modelScale, modelScale, modelScale);
-      lastTouchDistance = currentDistance;
-
-      const currentAngle = getTouchAngle(e.touches);
-      const angleDiff = currentAngle - lastTouchAngle;
-      modelRotation.z += angleDiff;
-      model.rotation.copy(modelRotation);
-      lastTouchAngle = currentAngle;
-    }
-  }, { passive: false });
-
-  canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    if (e.touches.length === 0) isDragging = false;
-  }, { passive: false });
-
-  // Animation loop
-  function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Window resize handler
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
-</body>
-</html>
+    return Math
