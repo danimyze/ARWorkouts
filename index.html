@@ -13,10 +13,8 @@
     video, canvas {
       position: fixed;
       top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100vw; height: 100vh;
       object-fit: cover;
-      z-index: 0;
     }
     canvas {
       z-index: 1;
@@ -29,17 +27,32 @@
       font-family: sans-serif;
       background: rgba(0, 0, 0, 0.6);
       padding: 5px 10px;
-      z-index: 2;
       border-radius: 4px;
+      z-index: 2;
+    }
+    #switchCameraBtn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      font-size: 20px;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
 <video id="videoElement" autoplay muted playsinline></video>
+<canvas id="threeCanvas"></canvas>
 <div id="message">Loading model...</div>
+<button id="switchCameraBtn" title="Switch Camera">🔄</button>
 
-<!-- ✅ Three.js + GLTFLoader (Compatible CDN versions) -->
+<!-- ✅ Three.js + GLTFLoader CDN -->
 <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
 
@@ -57,30 +70,50 @@
   };
 
   const messageDiv = document.getElementById('message');
+  const video = document.getElementById('videoElement');
+  const canvas = document.getElementById('threeCanvas');
+  const switchBtn = document.getElementById('switchCameraBtn');
+
   const modelKey = new URLSearchParams(window.location.search).get('model');
   const modelFile = models[modelKey];
-
   if (!modelFile) {
     messageDiv.textContent = 'Invalid model parameter.';
     throw new Error('Invalid model key');
   }
 
-  // Show webcam
-  const video = document.getElementById('videoElement');
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-    .then(stream => {
+  // 📷 Start camera with toggle
+  let currentFacingMode = 'user';
+  let currentStream = null;
+
+  async function startCamera(facingMode = 'user') {
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode },
+        audio: false
+      });
+      currentStream = stream;
       video.srcObject = stream;
-    })
-    .catch(err => {
+    } catch (err) {
       messageDiv.textContent = 'Camera not accessible';
       console.error(err);
-    });
+    }
+  }
 
-  // Setup Three.js
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  switchBtn.onclick = () => {
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    startCamera(currentFacingMode);
+  };
+
+  startCamera(currentFacingMode);
+
+  // 🎮 Three.js
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000, 0);
-  document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
@@ -88,19 +121,22 @@
   );
   camera.position.z = 5;
 
-  const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-  light.position.set(0, 20, 0);
-  scene.add(light);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(0, 5, 5);
+  scene.add(dirLight);
 
-  let model = null;
-  let mixer = null;
+  let model = null, mixer = null;
   let modelScale = 1.5;
+  let modelPos = new THREE.Vector3(0, 0, 0);
+  let modelRot = new THREE.Euler(0, 0, 0);
 
   const loader = new THREE.GLTFLoader();
   loader.load(modelFile, gltf => {
     model = gltf.scene;
     model.scale.set(modelScale, modelScale, modelScale);
     scene.add(model);
+    model.position.copy(modelPos);
 
     if (gltf.animations.length) {
       mixer = new THREE.AnimationMixer(model);
@@ -109,39 +145,97 @@
 
     messageDiv.style.display = 'none';
   }, undefined, error => {
-    console.error('Model load error:', error);
     messageDiv.textContent = 'Failed to load model';
+    console.error('Model load error:', error);
   });
 
-  // User interaction
+  // 🖱️ & ✋ Interaction
   let isDragging = false, prevX = 0, prevY = 0;
+  let lastTouchDist = 0, lastTouchAngle = 0;
 
-  renderer.domElement.addEventListener('mousedown', e => {
+  function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getTouchAngle(touches) {
+    const dx = touches[1].clientX - touches[0].clientX;
+    const dy = touches[1].clientY - touches[0].clientY;
+    return Math.atan2(dy, dx);
+  }
+
+  canvas.addEventListener('mousedown', e => {
     isDragging = true;
     prevX = e.clientX;
     prevY = e.clientY;
   });
 
-  renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
 
-  renderer.domElement.addEventListener('mousemove', e => {
+  canvas.addEventListener('mousemove', e => {
     if (!isDragging || !model) return;
     const dx = e.clientX - prevX;
     const dy = e.clientY - prevY;
-    model.position.x += dx * 0.01;
-    model.position.y -= dy * 0.01;
+    modelPos.x += dx * 0.01;
+    modelPos.y -= dy * 0.01;
+    model.position.copy(modelPos);
     prevX = e.clientX;
     prevY = e.clientY;
   });
 
-  renderer.domElement.addEventListener('wheel', e => {
+  canvas.addEventListener('wheel', e => {
     if (!model) return;
     e.preventDefault();
     modelScale = Math.min(5, Math.max(0.1, modelScale - e.deltaY * 0.001));
     model.scale.set(modelScale, modelScale, modelScale);
+  }, { passive: false });
+
+  canvas.addEventListener('touchstart', e => {
+    if (!model) return;
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      isDragging = true;
+      prevX = e.touches[0].clientX;
+      prevY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      lastTouchDist = getTouchDistance(e.touches);
+      lastTouchAngle = getTouchAngle(e.touches);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    if (!model) return;
+    e.preventDefault();
+    if (e.touches.length === 1 && isDragging) {
+      const dx = e.touches[0].clientX - prevX;
+      const dy = e.touches[0].clientY - prevY;
+      modelPos.x += dx * 0.01;
+      modelPos.y -= dy * 0.01;
+      model.position.copy(modelPos);
+      prevX = e.touches[0].clientX;
+      prevY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      const newDist = getTouchDistance(e.touches);
+      const deltaScale = (newDist - lastTouchDist) * 0.005;
+      modelScale = Math.min(5, Math.max(0.1, modelScale + deltaScale));
+      model.scale.set(modelScale, modelScale, modelScale);
+      lastTouchDist = newDist;
+
+      const newAngle = getTouchAngle(e.touches);
+      modelRot.z += newAngle - lastTouchAngle;
+      model.rotation.copy(modelRot);
+      lastTouchAngle = newAngle;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    if (e.touches.length === 0) isDragging = false;
   });
 
-  // Animate
+  // 🔁 Animation loop
   const clock = new THREE.Clock();
   function animate() {
     requestAnimationFrame(animate);
