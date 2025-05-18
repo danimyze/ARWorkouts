@@ -110,10 +110,23 @@
   let model = null;
   let mixer = null;
 
+  // Variables to track model position, rotation, scale for interaction
+  let modelPos = new THREE.Vector3(0, 0, 0);
+  let modelRot = new THREE.Euler(0, 0, 0, 'XYZ');
+  let modelScale = 1;
+
   loader.load(modelFile,
     gltf => {
       model = gltf.scene;
+
+      // Set initial scale
       model.scale.set(1.5, 1.5, 1.5);
+      modelScale = 1.5;
+
+      // Initialize position & rotation variables from model
+      modelPos.copy(model.position);
+      modelRot.copy(model.rotation);
+
       scene.add(model);
 
       if (gltf.animations && gltf.animations.length) {
@@ -133,9 +146,6 @@
   // Interaction variables
   let isDragging = false;
   let prevPos = { x: 0, y: 0 };
-  let modelPos = new THREE.Vector3(0, 0, 0);
-  let modelScale = 1;
-  let modelRot = new THREE.Euler(0, 0, 0, 'XYZ');
 
   // Touch helpers
   function getTouchDistance(touches) {
@@ -230,9 +240,17 @@
   const clock = new THREE.Clock();
   function animate() {
     requestAnimationFrame(animate);
+
     if (mixer) {
       mixer.update(clock.getDelta());
     }
+
+    // Optional slow spin when not dragging
+    if (model && !isDragging) {
+      model.rotation.y += 0.005;
+      modelRot.copy(model.rotation);
+    }
+
     renderer.render(scene, camera);
   }
   animate();
