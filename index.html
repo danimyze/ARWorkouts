@@ -30,18 +30,23 @@
       border-radius: 4px;
       z-index: 2;
     }
-    #switchCameraBtn {
+    #switchCameraBtn, #toggleViewBtn {
       position: fixed;
       top: 10px;
-      right: 10px;
       z-index: 2;
       background: rgba(0, 0, 0, 0.6);
       color: white;
       border: none;
-      font-size: 20px;
+      font-size: 16px;
       padding: 10px;
-      border-radius: 50%;
+      border-radius: 8px;
       cursor: pointer;
+    }
+    #switchCameraBtn {
+      right: 10px;
+    }
+    #toggleViewBtn {
+      right: 60px;
     }
   </style>
 </head>
@@ -51,6 +56,7 @@
 <canvas id="threeCanvas"></canvas>
 <div id="message">Loading model...</div>
 <button id="switchCameraBtn" title="Switch Camera">🔄</button>
+<button id="toggleViewBtn" title="Toggle View">Change View</button>
 
 <!-- ✅ Three.js + GLTFLoader CDN -->
 <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
@@ -73,6 +79,7 @@
   const video = document.getElementById('videoElement');
   const canvas = document.getElementById('threeCanvas');
   const switchBtn = document.getElementById('switchCameraBtn');
+  const toggleViewBtn = document.getElementById('toggleViewBtn');
 
   const modelKey = new URLSearchParams(window.location.search).get('model');
   const modelFile = models[modelKey];
@@ -110,7 +117,7 @@
 
   startCamera(currentFacingMode);
 
-  // 🎮 Three.js
+  // 🎮 Three.js setup
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000, 0);
@@ -135,8 +142,8 @@
   loader.load(modelFile, gltf => {
     model = gltf.scene;
     model.scale.set(modelScale, modelScale, modelScale);
-    scene.add(model);
     model.position.copy(modelPos);
+    scene.add(model);
 
     if (gltf.animations.length) {
       mixer = new THREE.AnimationMixer(model);
@@ -149,7 +156,15 @@
     console.error('Model load error:', error);
   });
 
-  // 🖱️ & ✋ Interaction
+  // 🔄 Toggle front/side view
+  let isSideView = false;
+  toggleViewBtn.onclick = () => {
+    if (!model) return;
+    isSideView = !isSideView;
+    model.rotation.y = isSideView ? Math.PI / 2 : 0; // 90° or 0°
+  };
+
+  // 🖱️ Interaction
   let isDragging = false, prevX = 0, prevY = 0;
   let lastTouchDist = 0, lastTouchAngle = 0;
 
