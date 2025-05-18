@@ -19,7 +19,7 @@
       const modelEntity = document.getElementById('model');
       const loader = new THREE.GLTFLoader();
 
-      loader.load('armstretch.glb', function (gltf) {
+      loader.load('models/armstretch.glb', function (gltf) {
         const model = gltf.scene;
         modelEntity.object3D.add(model);
 
